@@ -26,8 +26,31 @@ Edit `.env` and set:
 
 ## Run
 
+### Locally
+
 ```bash
 python main.py
+```
+
+### Or using Docker (Recommended)
+
+You can run the pre-built Docker image directly from GitHub Container Registry:
+
+```bash
+# 1. Create a directory for the bot data
+mkdir data
+
+# 2. Create your .env file
+touch .env
+# (Edit .env and add your DISCORD_TOKEN)
+
+# 3. Run the container
+docker run -d \
+  --name foxhole-buddy \
+  --env-file .env \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  ghcr.io/nonea785-cyber/fof:latest
 ```
 
 ## Commands
