@@ -28,8 +28,6 @@ class StockpileBot(discord.Client):
         for alarm in self.store.get_factory_alarms():
             if alarm.message_id:
                 self.add_view(FactoryAlarmCardView(self, alarm.id), message_id=alarm.message_id)
-            else:
-                self.add_view(FactoryAlarmCardView(self, alarm.id))
 
         if self.guild_id:
             guild = discord.Object(id=self.guild_id)
@@ -38,7 +36,7 @@ class StockpileBot(discord.Client):
         else:
             await self.tree.sync()
 
-        reminder_loop.change_interval(seconds=int(os.getenv("REMINDER_INTERVAL_SECONDS", "300")))
+        reminder_loop.change_interval(seconds=int(os.getenv("REMINDER_INTERVAL_SECONDS", "60")))
         if not reminder_loop.is_running():
             reminder_loop.start(self)
 

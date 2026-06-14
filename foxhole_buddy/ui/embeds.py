@@ -30,7 +30,7 @@ def main_menu_embed() -> discord.Embed:
     )
     embed.add_field(name="📦 Stockpile", value="Track reserve stockpile timers", inline=True)
     embed.add_field(name="⛏️ Resources", value="Manage farming needs & contributions", inline=True)
-    embed.add_field(name="🏭 Inventory", value="Manage base inventory", inline=True)
+    embed.add_field(name="📋 Inventory", value="Manage base inventory", inline=True)
     embed.add_field(name="🏭 Factories", value="Set personal facility queue alarms", inline=True)
     embed.set_footer(text="Foxhole Buddy | Keep the depot private")
     return embed

@@ -69,30 +69,24 @@ async def reminder_loop(bot: "StockpileBot") -> None:
             continue
 
         remaining = alarm.end_datetime - now
-        should_ping = False
-        message_text = ""
-        
+
         if not alarm.single_ping:
+            # 3-Ping: T-10m, T=0, T+10m — use sequential `if` so missed pings
+            # still fire if the bot was offline (e.g. bot restarts).
             if remaining <= timedelta(minutes=10) and remaining > timedelta(minutes=0) and not alarm.warned_before:
-                should_ping = True
-                message_text = f"⏰ <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** finishes in 10 minutes!"
+                await channel.send(f"⏰ <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** finishes in 10 minutes!")
                 bot.store.mark_factory_alarm_warned(alarm.id, "before")
-                
-            elif remaining <= timedelta(minutes=0) and remaining > timedelta(minutes=-10) and not alarm.warned_exact:
-                should_ping = True
-                message_text = f"⏰ <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** is finished! Please clear it."
+
+            if remaining <= timedelta(minutes=0) and not alarm.warned_exact:
+                await channel.send(f"⏰ <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** is finished! Please clear it.")
                 bot.store.mark_factory_alarm_warned(alarm.id, "exact")
-                
-            elif remaining <= timedelta(minutes=-10) and not alarm.warned_after:
-                should_ping = True
-                message_text = f"🚨 <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** has been finished for 10 minutes! Clear it now so others can use it!"
-                bot.store.mark_factory_alarm_warned(alarm.id, "after")
+
+            if remaining <= timedelta(minutes=-10) and not alarm.warned_after:
+                await channel.send(f"🚨 <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** has been finished for 10 minutes! Clear it now so others can use it!")
+                # Send first, THEN delete — so a failed send doesn't lose the alarm
                 bot.store.delete_factory_alarm(alarm.id)
         else:
+            # 1-Ping: exactly at T=0
             if remaining <= timedelta(minutes=0) and not alarm.warned_exact:
-                should_ping = True
-                message_text = f"⏰ <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** is finished! Please clear it."
+                await channel.send(f"⏰ <@{alarm.created_by_user_id}>, your queue at **{alarm.facility_name}** is finished! Please clear it.")
                 bot.store.delete_factory_alarm(alarm.id)
-                
-        if should_ping:
-            await channel.send(message_text)

@@ -49,7 +49,7 @@ class MainMenuView(discord.ui.View):
             view=ResourcesActionsView(self.bot),
         )
 
-    @discord.ui.button(label="Inventory", style=discord.ButtonStyle.success, emoji="🏭")
+    @discord.ui.button(label="Inventory", style=discord.ButtonStyle.success, emoji="📋")
     async def inventory_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         await interaction.response.edit_message(
             embed=inventory_type_embed(),
@@ -124,15 +124,8 @@ class ResourcesActionsView(discord.ui.View):
             )
             return
         await interaction.response.defer(ephemeral=True)
-        channel = (
-            interaction.channel
-            or self.bot.get_channel(interaction.channel_id)
-            or await self.bot.fetch_channel(interaction.channel_id)
-        )
         for need in needs:
-            msg = await channel.send(embed=resource_need_embed(need))
-            self.bot.store.set_resource_need_message_id(need.id, msg.id)
-        await interaction.followup.send(f"Posted **{len(needs)}** open need(s).", ephemeral=True)
+            await interaction.followup.send(embed=resource_need_embed(need), ephemeral=True)
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary, emoji="◀️", row=1)
     async def back_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -264,10 +257,12 @@ class InventoryTypeView(discord.ui.View):
 
     @discord.ui.button(label="Off Site Inv", style=discord.ButtonStyle.secondary, emoji="📦")
     async def offsite_inv_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        await interaction.response.send_message(
-            "*(Coming Soon)* Off-site inventory tracking is not yet available.",
-            ephemeral=True
+        embed = discord.Embed(
+            title="📦 Off-Site Inventory",
+            description="*(Coming Soon)* Off-site inventory tracking is not yet available.",
+            color=0x6B7280,
         )
+        await interaction.response.edit_message(embed=embed, view=InventoryTypeView(self.bot))
 
     @discord.ui.button(label="Back", style=discord.ButtonStyle.secondary, emoji="◀️")
     async def back_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
