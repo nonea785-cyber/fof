@@ -1,6 +1,5 @@
 import discord
 from discord import app_commands
-from foxhole_buddy.core.store import EXPIRY_HOURS
 from foxhole_buddy.ui.embeds import main_menu_embed
 from foxhole_buddy.ui.views import MainMenuView
 
@@ -42,7 +41,7 @@ def register_commands(bot) -> None:
     async def stockpile_help(interaction: discord.Interaction) -> None:
         embed = discord.Embed(
             title="Foxhole Buddy Help",
-            description="A lightweight logistics timer for Foxhole reserve stockpiles.",
+            description="Your regiment's logistics assistant for Foxhole.",
             color=0x2D7D46,
         )
         embed.add_field(
@@ -50,7 +49,7 @@ def register_commands(bot) -> None:
             value=(
                 "1. An admin runs `/foxhole_buddy setup` in the reminder channel.\n"
                 "2. Use `/foxhole_buddy manage` to open the interactive menu.\n"
-                "3. Add stockpiles, then press **Mark Refreshed** after each in-game refresh."
+                "3. Choose **Stockpile**, **Resources**, **Inventory**, or **Factories**."
             ),
             inline=False,
         )
@@ -64,19 +63,12 @@ def register_commands(bot) -> None:
             inline=False,
         )
         embed.add_field(
-            name="Timer Rules",
+            name="Features",
             value=(
-                f"Each refresh arms a **{EXPIRY_HOURS}h** window. "
-                "Alerts fire at **24h**, **6h**, **2h**, and once after expiry."
-            ),
-            inline=False,
-        )
-        embed.add_field(
-            name="Refresh Protocol",
-            value=(
-                "Always refresh the stockpile **in-game first**, then press "
-                "**Mark Refreshed** on the Discord card. "
-                "Foxhole Buddy tracks the timer — it cannot touch the game."
+                "📦 **Stockpile** — Track reserve timers (50h expiry, alerts at 24h/6h/2h)\n"
+                "⛏️ **Resources** — Post needs, pledge farming, log progress\n"
+                "📋 **Inventory** — Add/remove/list base materials\n"
+                "🏭 **Factories** — Set 1-ping or 3-ping queue alarms (5m intervals)"
             ),
             inline=False,
         )
