@@ -40,13 +40,13 @@ class StockpileStoreTest(unittest.TestCase):
                 user_id=3,
                 now=start,
             )
-            stockpile.warned_24h = True
+            stockpile.reminders_sent = ["12h"]
             store.update(stockpile)
 
             refreshed = store.refresh(stockpile.id, user_id=4, now=refresh_time)
 
             self.assertEqual(refreshed.expires_datetime, refresh_time + timedelta(hours=48))
-            self.assertFalse(refreshed.warned_24h)
+            self.assertEqual(refreshed.reminders_sent, [])
             self.assertEqual(refreshed.last_refreshed_by_user_id, 4)
 
     def test_warning_due_orders_thresholds(self) -> None:
@@ -60,10 +60,11 @@ class StockpileStoreTest(unittest.TestCase):
                 location="Port",
                 stockpile_type="seaport",
                 user_id=3,
-                now=now - timedelta(hours=46.5),
+                now=now - timedelta(hours=47, minutes=40),  # ~20 min left
             )
 
-            self.assertEqual(warning_due(stockpile, now), "2h")
+            # Most urgent crossed-but-unsent threshold wins.
+            self.assertEqual(warning_due(stockpile, now), "30m")
 
 
 if __name__ == "__main__":

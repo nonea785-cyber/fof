@@ -1,44 +1,33 @@
 import discord
 from discord import app_commands
-from foxhole_buddy.ui.embeds import main_menu_embed
-from foxhole_buddy.ui.views import MainMenuView
+from foxhole_buddy.ui.embeds import main_menu_embed, setup_embed, war_room_embed
+from foxhole_buddy.ui.views import MainMenuView, SetupView, WarRoomView
+
 
 def register_commands(bot) -> None:
-    stockpile_group = app_commands.Group(name="foxhole_buddy", description="Foxhole stockpile reminders.")
+    stockpile_group = app_commands.Group(name="foxhole_buddy", description="Foxhole regiment assistant.")
 
-    @stockpile_group.command(name="setup", description="Set this channel as the Foxhole Buddy reminder channel for this server.")
+    @stockpile_group.command(name="setup", description="Open the interactive server setup panel (admin).")
     @app_commands.default_permissions(manage_guild=True)
-    async def stockpile_setup(
-        interaction: discord.Interaction,
-        urgent_role: discord.Role | None = None,
-    ) -> None:
+    async def stockpile_setup(interaction: discord.Interaction) -> None:
         if interaction.guild_id is None:
             await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
             return
-
-        urgent_role_id = urgent_role.id if urgent_role else None
-        bot.store.set_guild_config(interaction.guild_id, interaction.channel_id, urgent_role_id)
-
-        embed = discord.Embed(
-            title="✅ Foxhole Buddy Setup Complete",
-            description=(
-                f"<#{interaction.channel_id}> is now the Foxhole Buddy reminder channel for this server.\n"
-                "All stockpile commands and alerts will be routed here."
-            ),
-            color=0x2D7D46,
+        # Pre-fill the main channel with the current one as a sensible default if unset.
+        config = bot.store.get_guild_config(interaction.guild_id)
+        if config.get("channel_id") is None:
+            bot.store.update_guild_config(interaction.guild_id, channel_id=interaction.channel_id)
+            config = bot.store.get_guild_config(interaction.guild_id)
+        await interaction.response.send_message(
+            embed=setup_embed(config),
+            view=SetupView(bot, interaction.guild_id),
+            ephemeral=True,
         )
-        if urgent_role:
-            embed.add_field(name="Urgent Role (2h ping)", value=urgent_role.mention, inline=True)
-        embed.add_field(
-            name="Next Step",
-            value="Run `/foxhole_buddy add` to create your first stockpile timer.",
-            inline=False,
-        )
-        embed.set_footer(text="Foxhole Buddy | Ready for logistics")
-        await interaction.response.send_message(embed=embed)
 
     @stockpile_group.command(name="help", description="Show information about the Foxhole Buddy bot.")
     async def stockpile_help(interaction: discord.Interaction) -> None:
+        if not await bot._check_channel(interaction):
+            return
         embed = discord.Embed(
             title="Foxhole Buddy Help",
             description="Your regiment's logistics assistant for Foxhole.",
@@ -47,17 +36,20 @@ def register_commands(bot) -> None:
         embed.add_field(
             name="Getting Started",
             value=(
-                "1. An admin runs `/foxhole_buddy setup` in the reminder channel.\n"
-                "2. Use `/foxhole_buddy manage` to open the interactive menu.\n"
-                "3. Choose **Stockpile**, **Resources**, **Inventory**, or **Factories**."
+                "1. An admin runs `/foxhole_buddy setup` to open the setup panel — "
+                "pick the main channel, faction, urgent role, and alert channels.\n"
+                "2. Use `/foxhole_buddy manage` for logistics, or `/foxhole_buddy war_room` for ops & war data.\n"
+                "3. From **manage**: Stockpile, Logistics, Inventory, Factories. "
+                "From **war**: Operations, War Status, War Report."
             ),
             inline=False,
         )
         embed.add_field(
             name="Commands",
             value=(
-                "`/foxhole_buddy setup` — (admin) register a reminder channel\n"
-                "`/foxhole_buddy manage` — open the regiment management menu\n"
+                "`/foxhole_buddy setup` — (admin) configure the server\n"
+                "`/foxhole_buddy manage` — logistics & base management menu\n"
+                "`/foxhole_buddy war_room` — operations & live war data menu\n"
                 "`/foxhole_buddy help` — show this info panel"
             ),
             inline=False,
@@ -65,10 +57,14 @@ def register_commands(bot) -> None:
         embed.add_field(
             name="Features",
             value=(
-                "📦 **Stockpile** — Track reserve timers (48h expiry, alerts at 24h/6h/2h)\n"
-                "⛏️ **Resources** — Post needs, pledge farming, log progress\n"
+                "📦 **Stockpile** — Track reserve timers (48h expiry, alerts at 12h/6h/1h/30m)\n"
+                "🚚 **Logistics** — Multi-item supply requests (search or browse); claim the whole list or per item\n"
                 "📋 **Inventory** — Add/remove/list base materials\n"
-                "🏭 **Factories** — Set 1-ping or 3-ping queue alarms (5m intervals)"
+                "🏭 **Factories** — Set 1-ping or 3-ping queue alarms (5m intervals)\n"
+                "⚔️ **Operations** — Schedule ops, RSVP, optional squads with leads\n"
+                "🤝 **Allied Ops** — One op shared live across an ally room; every server RSVPs together\n"
+                "📡 **Regi Net** — `/global` broadcasts to every linked regiment (opt-in per server)\n"
+                "🛡️ **Ally Chat** — `/ally` private rooms with allied servers (join by invite code)"
             ),
             inline=False,
         )
@@ -77,10 +73,118 @@ def register_commands(bot) -> None:
 
     @stockpile_group.command(name="manage", description="Open the regiment management menu.")
     async def regiment_manage(interaction: discord.Interaction) -> None:
+        if not await bot._check_channel(interaction):
+            return
         await interaction.response.send_message(
             embed=main_menu_embed(),
             view=MainMenuView(bot),
             ephemeral=True,
         )
 
+    @stockpile_group.command(name="war_room", description="Open the War Room — operations & live war data.")
+    async def war_room(interaction: discord.Interaction) -> None:
+        if not await bot._check_channel(interaction, allow_ops=True):
+            return
+        await interaction.response.send_message(
+            embed=war_room_embed(),
+            view=WarRoomView(bot),
+            ephemeral=True,
+        )
+
     bot.tree.add_command(stockpile_group)
+
+    # Regi Net broadcast. Top-level + short on purpose — it's a chat command.
+    # Text arrives via the interaction, so no privileged Message Content intent.
+    _REGI_ATTACHMENT_CAP = 8 * 1024 * 1024
+
+    @bot.tree.command(name="global", description="Broadcast a message to every linked regiment (Regi Net).")
+    @app_commands.describe(message="What to broadcast", image="Optional image to send along")
+    async def regi_global(
+        interaction: discord.Interaction,
+        message: str,
+        image: discord.Attachment | None = None,
+    ) -> None:
+        if interaction.guild_id is None:
+            await interaction.response.send_message("Regi Net only works in a server.", ephemeral=True)
+            return
+        relay = bot.store.get_relay_channel(interaction.guild_id)
+        if relay is None:
+            await interaction.response.send_message(
+                "📡 This server hasn't joined Regi Net. An admin can join via "
+                "`/foxhole_buddy setup → 🌐 Regi Chat`.",
+                ephemeral=True,
+            )
+            return
+        if interaction.channel_id != relay:
+            await interaction.response.send_message(
+                f"Use `/global` in your Regi Net channel <#{relay}>.", ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        content = message
+        attachments: list[tuple[str, bytes]] = []
+        if image is not None:
+            if image.size and image.size > _REGI_ATTACHMENT_CAP:
+                content = f"{content}\n{image.url}".strip()
+            else:
+                try:
+                    attachments.append((image.filename, await image.read()))
+                except Exception:
+                    content = f"{content}\n{image.url}".strip()
+
+        count = await bot.broadcast_regi(
+            author_name=interaction.user.display_name,
+            regiment=interaction.guild.name,
+            faction=bot.store.get_guild_faction(interaction.guild_id),
+            avatar_url=interaction.user.display_avatar.url,
+            content=content,
+            attachments=attachments,
+        )
+        await interaction.followup.send(
+            f"📡 Transmitted to **{count}** regiment(s) on the net.", ephemeral=True
+        )
+
+    @bot.tree.command(name="ally", description="Broadcast a message to your allied servers in this channel's room.")
+    @app_commands.describe(message="What to send", image="Optional image to send along")
+    async def ally_cmd(
+        interaction: discord.Interaction,
+        message: str,
+        image: discord.Attachment | None = None,
+    ) -> None:
+        if interaction.guild_id is None:
+            await interaction.response.send_message("Ally chat only works in a server.", ephemeral=True)
+            return
+        room = bot.store.ally_room_by_channel(interaction.guild_id, interaction.channel_id)
+        if room is None:
+            await interaction.response.send_message(
+                "🛡️ This channel isn't an ally chat. An admin can set one up via "
+                "`/foxhole_buddy setup → 💬 Setup Chats → 🛡️ Ally Chats`.",
+                ephemeral=True,
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        content = message
+        attachments: list[tuple[str, bytes]] = []
+        if image is not None:
+            if image.size and image.size > _REGI_ATTACHMENT_CAP:
+                content = f"{content}\n{image.url}".strip()
+            else:
+                try:
+                    attachments.append((image.filename, await image.read()))
+                except Exception:
+                    content = f"{content}\n{image.url}".strip()
+
+        count = await bot.broadcast_ally(
+            room_code=room,
+            author_name=interaction.user.display_name,
+            regiment=interaction.guild.name,
+            faction=bot.store.get_guild_faction(interaction.guild_id),
+            avatar_url=interaction.user.display_avatar.url,
+            content=content,
+            attachments=attachments,
+        )
+        await interaction.followup.send(
+            f"🛡️ Sent to **{count}** allied server(s).", ephemeral=True
+        )

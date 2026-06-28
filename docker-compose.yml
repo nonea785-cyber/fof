@@ -1,0 +1,12 @@
+services:
+  foxhole-buddy:
+    build: .
+    image: foxhole-buddy:latest
+    container_name: foxhole-buddy
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Persist the SQLite DB + caches on the host. The DB lives at
+      # ./data/foxhole.db on the server and survives restarts/rebuilds.
+      - ./data:/app/data
