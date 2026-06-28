@@ -68,6 +68,14 @@ def register_commands(bot) -> None:
             ),
             inline=False,
         )
+        embed.add_field(
+            name="Feedback & Support",
+            value=(
+                "Got feedback or found a bug? Post it in the **issues** channel of our "
+                "Discord server: https://discord.gg/5u7bmdzT2"
+            ),
+            inline=False,
+        )
         embed.set_footer(text="Foxhole Buddy | Keep the depot private")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
