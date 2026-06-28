@@ -20,7 +20,7 @@ RELAY_WEBHOOK_NAME = "Foxhole Regi Net"
 
 class StockpileBot(discord.Client):
     def __init__(self, store: StockpileStore):
-        # Regi Net relays via the /global command (interaction text), so the bot
+        # Regi Net relays via the /g command (interaction text), so the bot
         # needs NO privileged Message Content intent — default intents suffice.
         intents = discord.Intents.default()
         super().__init__(intents=intents)
@@ -103,7 +103,7 @@ class StockpileBot(discord.Client):
         log.info("Left guild %s; purged %d row(s).", guild.id, removed)
 
     # ------------------------------------------------------------------
-    # Regi Net — global cross-server broadcast (the /global command)
+    # Regi Net — global cross-server broadcast (the /g command)
     # ------------------------------------------------------------------
 
     async def broadcast_regi(

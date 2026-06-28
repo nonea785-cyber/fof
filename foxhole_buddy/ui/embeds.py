@@ -257,7 +257,7 @@ def regi_net_panel_embed(faction: str | None, linked: int) -> discord.Embed:
         title="📡 REGI NET — LIVE",
         description=(
             "Open comms across **all** linked regiments — every faction, one net.\n"
-            "Send with **`/global <message> [image]`** or tap **✍️ Transmit** below.\n"
+            "Send with **`/g <message> [image]`** or tap **✍️ Transmit** below.\n"
             "Your name, regiment, and faction ride along with every message."
         ),
         color=Color.BRAND,
@@ -274,7 +274,7 @@ def ally_net_panel_embed(room_code: str, members: int) -> discord.Embed:
         title="🛡️ ALLY NET — LIVE",
         description=(
             "Private comms with your allied servers in this room.\n"
-            "Send with **`/ally <message> [image]`** or tap **✍️ Transmit** below."
+            "Send with **`/a <message> [image]`** or tap **✍️ Transmit** below."
         ),
         color=Color.PURPLE,
     )
@@ -294,7 +294,7 @@ def chats_setup_embed(relay_channel_id: int | None, ally_room_count: int) -> dis
     embed.add_field(
         name="🌐 Global chat (Regi Net)",
         value=(
-            f"<#{relay_channel_id}> — `/global` reaches every linked regiment "
+            f"<#{relay_channel_id}> — `/g` reaches every linked regiment "
             "(bot needs **Manage Webhooks** here)"
             if relay_channel_id else "↳ *not joined — pick a channel below*"
         ),

@@ -210,7 +210,7 @@ class AllyChatsView(discord.ui.View):
         await interaction.followup.send(
             f"🛡️ Ally room created: **`{code}`**\nShare this code with allied admins so they "
             f"can **Join with code** from their own server. Talk in <#{channel_id}> with "
-            "`/ally` or the panel.",
+            "`/a` or the panel.",
             ephemeral=True,
         )
 

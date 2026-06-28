@@ -63,8 +63,8 @@ def register_commands(bot) -> None:
                 "🏭 **Factories** — Set 1-ping or 3-ping queue alarms (5m intervals)\n"
                 "⚔️ **Operations** — Schedule ops, RSVP, optional squads with leads\n"
                 "🤝 **Allied Ops** — One op shared live across an ally room; every server RSVPs together\n"
-                "📡 **Regi Net** — `/global` broadcasts to every linked regiment (opt-in per server)\n"
-                "🛡️ **Ally Chat** — `/ally` private rooms with allied servers (join by invite code)"
+                "📡 **Regi Net** — `/g` broadcasts to every linked regiment (opt-in per server)\n"
+                "🛡️ **Ally Chat** — `/a` private rooms with allied servers (join by invite code)"
             ),
             inline=False,
         )
@@ -105,7 +105,7 @@ def register_commands(bot) -> None:
     # Text arrives via the interaction, so no privileged Message Content intent.
     _REGI_ATTACHMENT_CAP = 8 * 1024 * 1024
 
-    @bot.tree.command(name="global", description="Broadcast a message to every linked regiment (Regi Net).")
+    @bot.tree.command(name="g", description="Broadcast a message to every linked regiment (Regi Net).")
     @app_commands.describe(message="What to broadcast", image="Optional image to send along")
     async def regi_global(
         interaction: discord.Interaction,
@@ -125,7 +125,7 @@ def register_commands(bot) -> None:
             return
         if interaction.channel_id != relay:
             await interaction.response.send_message(
-                f"Use `/global` in your Regi Net channel <#{relay}>.", ephemeral=True
+                f"Use `/g` in your Regi Net channel <#{relay}>.", ephemeral=True
             )
             return
 
@@ -153,7 +153,7 @@ def register_commands(bot) -> None:
             f"📡 Transmitted to **{count}** regiment(s) on the net.", ephemeral=True
         )
 
-    @bot.tree.command(name="ally", description="Broadcast a message to your allied servers in this channel's room.")
+    @bot.tree.command(name="a", description="Broadcast a message to your allied servers in this channel's room.")
     @app_commands.describe(message="What to send", image="Optional image to send along")
     async def ally_cmd(
         interaction: discord.Interaction,
