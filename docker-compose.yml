@@ -1,8 +1,8 @@
 services:
   foxhole-buddy:
     build: .
-    image: foxhole-buddy:latest
-    container_name: foxhole-buddy
+    image: foxhole:0.5
+    container_name: fox
     restart: unless-stopped
     env_file:
       - .env
